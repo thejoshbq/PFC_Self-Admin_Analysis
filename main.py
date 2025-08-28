@@ -8,8 +8,7 @@ from tqdm import tqdm
 from nsync2p.sample import NSyncSample
 from nsync2p.population import NSyncPopulation
 
-
-def array_to_blob(arr):
+def array_to_blob(arr) -> bytes:
     """
     Serialize a numpy array into a binary blob using np.save.
 
@@ -22,7 +21,6 @@ def array_to_blob(arr):
     bio = io.BytesIO()
     np.save(bio, arr)
     return bio.getvalue()
-
 
 def get_or_insert_day(cur, label):
     """
@@ -42,7 +40,6 @@ def get_or_insert_day(cur, label):
     cur.execute("INSERT INTO Days (label) VALUES (?)", (label,))
     return cur.lastrowid
 
-
 def get_or_insert_animal(cur, label):
     """
     Get the animal_id for a given label, inserting if it doesn't exist.
@@ -61,7 +58,6 @@ def get_or_insert_animal(cur, label):
     cur.execute("INSERT INTO Animals (label) VALUES (?)", (label,))
     return cur.lastrowid
 
-
 def insert_fov(cur, label, animal_id, day_id):
     """
     Insert a new FOV and return its ID.
@@ -78,8 +74,7 @@ def insert_fov(cur, label, animal_id, day_id):
     cur.execute("INSERT INTO FOVs (label, animal_id, day_id) VALUES (?,?,?)", (label, animal_id, day_id))
     return cur.lastrowid
 
-
-def setup_database(conn, cur):
+def setup_database(conn, cur) -> None:
     """
     Drop existing tables and create the database schema.
 
@@ -159,8 +154,7 @@ def setup_database(conn, cur):
                 """)
     conn.commit()
 
-
-def load_cluster_ids(root):
+def load_cluster_ids(root) -> np.ndarray:
     """
     Load the cluster IDs from the npy file.
 
@@ -172,8 +166,7 @@ def load_cluster_ids(root):
     """
     return np.load(os.path.join(root, "cluster_ids.npy"))
 
-
-def get_days(root):
+def get_days(root) -> list:
     """
     Get the list of day directories from the root.
 
@@ -185,8 +178,7 @@ def get_days(root):
     """
     return [d for d in sorted(os.listdir(root)) if os.path.isdir(os.path.join(root, d))]
 
-
-def collect_samples_for_day(root, day, day_id, cur):
+def collect_samples_for_day(root, day, day_id, cur) -> tuple[list, list]:
     """
     Collect NSyncSample instances for a day across animals and FOVs, inserting FOVs as needed.
 
@@ -246,8 +238,7 @@ def collect_samples_for_day(root, day, day_id, cur):
 
     return samples, fov_ids
 
-
-def create_population(samples, day):
+def create_population(samples, day) -> NSyncPopulation:
     """
     Create an NSyncPopulation from the list of samples.
 
@@ -267,8 +258,7 @@ def create_population(samples, day):
         bh_correction=False,
     )
 
-
-def compute_valid_mask(population):
+def compute_valid_mask(population) -> np.ndarray:
     """
     Compute the mask for valid (non-NaN mean response) neurons.
 
@@ -280,7 +270,6 @@ def compute_valid_mask(population):
     """
     mean_responses_pre = np.nanmean(population.per_neuron_means, axis=1)
     return ~np.isnan(mean_responses_pre)
-
 
 def assign_clusters(population, cluster_ids, start_used, valid_mask):
     """
@@ -325,8 +314,7 @@ def assign_clusters(population, cluster_ids, start_used, valid_mask):
 
     return used_cluster_ids
 
-
-def filter_target_events(eventlog, event_id_map, event_ids_arr, event_timestamps_arr, min_events):
+def filter_target_events(eventlog, event_id_map, event_ids_arr, event_timestamps_arr, min_events) -> list[int]:
     """
     Filter and process target events (types 22 and 222), removing close events.
 
@@ -367,8 +355,7 @@ def filter_target_events(eventlog, event_id_map, event_ids_arr, event_timestamps
 
     return target_event_ids
 
-
-def insert_data_for_day(population, fov_id_list, valid_mask, cur, conn):
+def insert_data_for_day(population, fov_id_list, valid_mask, cur, conn) -> None:
     """
     Insert extracted signals, event logs, and event windows for the day's samples.
 
@@ -449,7 +436,6 @@ def insert_data_for_day(population, fov_id_list, valid_mask, cur, conn):
         cumul_neuron_start = sample_neuron_end
         conn.commit()
 
-
 def process_day(root, day, cur, conn, cluster_ids, used_cluster_ids):
     """
     Process a single day: collect samples, create population, assign clusters, insert data.
@@ -486,8 +472,7 @@ def process_day(root, day, cur, conn, cluster_ids, used_cluster_ids):
 
     return used_cluster_ids
 
-
-def main():
+def main() -> None:
     """
     Main function to orchestrate the data processing pipeline.
     """
@@ -513,7 +498,6 @@ def main():
 
     finally:
         conn.close()
-
 
 if __name__ == "__main__":
     main()

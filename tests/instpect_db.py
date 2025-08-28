@@ -8,8 +8,7 @@ import seaborn as sns
 import io
 from tqdm import tqdm
 
-
-def blob_to_array(blob):
+def blob_to_array(blob) -> np.ndarray:
     """
     Deserialize a binary blob into a numpy array using np.load.
 
@@ -22,8 +21,7 @@ def blob_to_array(blob):
     bio = io.BytesIO(blob)
     return np.load(bio)
 
-
-def safe_int(val):
+def safe_int(val) -> int:
     """
     Safely convert a value to an integer, handling NaN, bytes, and conversion errors.
 
@@ -45,8 +43,7 @@ def safe_int(val):
     except (ValueError, TypeError):
         return -1
 
-
-def query_windows_data(conn, day_id):
+def query_windows_data(conn, day_id) -> tuple[pd.DataFrame, int]:
     """
     Query the EventWindows data for a specific day, joining with FOVs.
 
@@ -82,8 +79,7 @@ def query_windows_data(conn, day_id):
 
     return windows_df, total_windows
 
-
-def compute_per_neuron_means(windows_df):
+def compute_per_neuron_means(windows_df) -> tuple[np.ndarray, np.ndarray, pd.Series]:
     """
     Deserialize blobs and compute mean traces per neuron.
 
@@ -109,8 +105,7 @@ def compute_per_neuron_means(windows_df):
 
     return per_neuron_means, neuron_ids, neuron_clusters_df
 
-
-def filter_by_valid_clusters(per_neuron_means, neuron_ids, neuron_clusters_df):
+def filter_by_valid_clusters(per_neuron_means, neuron_ids, neuron_clusters_df) -> tuple[np.ndarray, np.ndarray]:
     """
     Filter neurons to those with valid (non-negative) cluster IDs.
 
@@ -130,8 +125,7 @@ def filter_by_valid_clusters(per_neuron_means, neuron_ids, neuron_clusters_df):
 
     return per_neuron_means[valid_cluster_mask], clusters[valid_cluster_mask]
 
-
-def normalize_traces(per_neuron_means, baseline_range):
+def normalize_traces(per_neuron_means, baseline_range) -> np.ndarray:
     """
     Normalize per-neuron traces by subtracting baseline mean and dividing by baseline std.
 
@@ -155,8 +149,7 @@ def normalize_traces(per_neuron_means, baseline_range):
 
     return per_neuron_means
 
-
-def filter_valid_responses(per_neuron_means, valid_clusters):
+def filter_valid_responses(per_neuron_means, valid_clusters) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     """
     Filter out neurons with NaN mean responses and update clusters.
 
@@ -180,8 +173,7 @@ def filter_valid_responses(per_neuron_means, valid_clusters):
 
     return filtered_traces, filtered_means, filtered_clusters, num_valid
 
-
-def compute_population_stats(per_neuron_means):
+def compute_population_stats(per_neuron_means) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute population-level mean, SEM-based CI, and median traces.
 
@@ -201,8 +193,7 @@ def compute_population_stats(per_neuron_means):
 
     return pop_mean, pop_upper, pop_lower, pop_median
 
-
-def sort_traces_by_response(per_neuron_means, mean_responses):
+def sort_traces_by_response(per_neuron_means, mean_responses) -> np.ndarray:
     """
     Sort neuron traces by descending mean response.
 
@@ -216,8 +207,7 @@ def sort_traces_by_response(per_neuron_means, mean_responses):
     sort_idx = np.argsort(mean_responses)[::-1]
     return per_neuron_means[sort_idx]
 
-
-def compute_cluster_stats(per_neuron_means, valid_clusters):
+def compute_cluster_stats(per_neuron_means, valid_clusters) -> list[tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """
     Compute mean traces and CI for each cluster.
 
@@ -244,8 +234,7 @@ def compute_cluster_stats(per_neuron_means, valid_clusters):
 
     return cluster_data
 
-
-def process_day_data(conn, day_id):
+def process_day_data(conn, day_id) -> tuple[np.ndarray, list[tuple[np.ndarray, np.ndarray, np.ndarray]], tuple, int]:
     """
     Main function to process data for a single day: query, compute means, normalize, filter, and stats.
 
@@ -281,8 +270,7 @@ def process_day_data(conn, day_id):
     except (ValueError, IndexError):
         return None, None, None, 0
 
-
-def compute_global_limits(conn, day_ids):
+def compute_global_limits(conn, day_ids) -> tuple[tuple, tuple]:
     """
     Compute global y-limits for population and cluster plots across all days.
 
@@ -331,8 +319,7 @@ def compute_global_limits(conn, day_ids):
 
     return pop_ylim, cluster_ylim
 
-
-def assign_cluster_colors(valid_cs, cluster_data):
+def assign_cluster_colors(valid_cs, cluster_data) -> dict[int, str]:
     """
     Assign colors to clusters based on their overall mean responses (purple for positive, green for negative, black for neutral).
 
@@ -373,9 +360,8 @@ def assign_cluster_colors(valid_cs, cluster_data):
                 cluster_colors[c] = color
     return cluster_colors
 
-
 def plot_day(ax1, ax2, ax3, sorted_temp, cluster_data, pop_data, num_valid_neurons, day_label, pop_ylim, cluster_ylim,
-             idx):
+             idx) -> None:
     """
     Plot data for a single day across the three subplots.
 
@@ -438,8 +424,7 @@ def plot_day(ax1, ax2, ax3, sorted_temp, cluster_data, pop_data, num_valid_neuro
         ax2.set_ylabel('Population Response', color='k')
         ax3.set_ylabel('Cluster Response', color='k')
 
-
-def plot_no_data(axes, day_label, pop_ylim, cluster_ylim, idx):
+def plot_no_data(axes, day_label, pop_ylim, cluster_ylim, idx) -> None:
     """
     Handle plotting for days with no data.
 
@@ -456,8 +441,7 @@ def plot_no_data(axes, day_label, pop_ylim, cluster_ylim, idx):
     axes[1, idx].set_ylim(pop_ylim)
     axes[2, idx].set_ylim(cluster_ylim)
 
-
-def main():
+def main() -> None:
     """
     Main function to orchestrate database connection, limit computation, and plotting.
     """
@@ -475,17 +459,12 @@ def main():
             print("No days found in database.")
             return
 
-        # Compute global limits
         pop_ylim, cluster_ylim = compute_global_limits(conn, day_ids)
 
-        # Setup plotting
         sns.set_style('white')
         fig, axes = plt.subplots(3, num_days, figsize=(15, 12), sharex='col', squeeze=False)
         fig.suptitle("Multi-Day Neural Activity from Database\n\n", fontsize=16)
 
-        has_data = False
-
-        # Plot each day
         for idx, (did, day) in enumerate(tqdm(zip(day_ids, days), total=num_days, desc="Plotting data")):
             sorted_temp, cluster_data, pop_data, num_valid_neurons = process_day_data(conn, did)
 
@@ -493,7 +472,6 @@ def main():
                 plot_no_data(axes, day, pop_ylim, cluster_ylim, idx)
                 continue
 
-            has_data = True
             plot_day(
                 axes[0, idx], axes[1, idx], axes[2, idx],
                 sorted_temp, cluster_data, pop_data, num_valid_neurons,
@@ -506,7 +484,6 @@ def main():
     finally:
         print("Closing database connection...")
         conn.close()
-
 
 if __name__ == "__main__":
     main()
